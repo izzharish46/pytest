@@ -1,0 +1,177 @@
+#create_database.py
+
+
+import mysql.connector
+from mysql.connector import errorcode
+
+# Database configuration
+config = {
+    'user': 'your_username',
+    'password': 'your_password',
+    'host': 'localhost',
+    'database': 'LelemoveSystem'
+}
+
+# Connect to MySQL server
+try:
+    conn = mysql.connector.connect(user=config['user'], password=config['password'], host=config['host'])
+    cursor = conn.cursor()
+
+    # Create database
+    cursor.execute(f"CREATE DATABASE IF NOT EXISTS {config['database']}")
+    conn.database = config['database']
+
+    # Create table
+    create_table_query = '''
+    CREATE TABLE IF NOT EXISTS parcels (
+        item_id VARCHAR(10) PRIMARY KEY,
+        item_height VARCHAR(5),
+        item_width VARCHAR(5),
+        item_length VARCHAR(5),
+        item_volume VARCHAR(10),
+        item_price VARCHAR(5)
+    )
+    '''
+    cursor.execute(create_table_query)
+
+    # Commit changes and close connection
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("Database and table created successfully.")
+except mysql.connector.Error as err:
+    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        print("Something is wrong with your user name or password")
+    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+        print("Database does not exist")
+    else:
+        print(err)
+
+
+
+
+
+
+#GUI
+
+
+import tkinter as tk
+from tkinter import messagebox
+import parcel_calculator
+import mysql.connector
+import uuid
+
+class ParcelCalculatorGUI:
+    def __init__(self, master):
+        self.master = master
+        master.title("Parcel Calculator")
+        master.configure(bg="lightblue")
+
+        # Database configuration
+        self.config = {
+            'user': 'your_username',
+            'password': 'your_password',
+            'host': 'localhost',
+            'database': 'LelemoveSystem'
+        }
+
+        # Create length input label and entry field
+        self.length_label = tk.Label(master, text="Length (cm):", bg="lightblue", fg="black")
+        self.length_label.grid(row=0, column=0, padx=10, pady=5)
+        self.length_entry = tk.Entry(master)
+        self.length_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        # Create width input label and entry field
+        self.width_label = tk.Label(master, text="Width (cm):", bg="lightblue", fg="black")
+        self.width_label.grid(row=1, column=0, padx=10, pady=5)
+        self.width_entry = tk.Entry(master)
+        self.width_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        # Create height input label and entry field
+        self.height_label = tk.Label(master, text="Height (cm):", bg="lightblue", fg="black")
+        self.height_label.grid(row=2, column=0, padx=10, pady=5)
+        self.height_entry = tk.Entry(master)
+        self.height_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        # Create weight input label and entry field
+        self.weight_label = tk.Label(master, text="Weight (kg):", bg="lightblue", fg="black")
+        self.weight_label.grid(row=3, column=0, padx=10, pady=5)
+        self.weight_entry = tk.Entry(master)
+        self.weight_entry.grid(row=3, column=1, padx=10, pady=5)
+
+        # Create calculate button
+        self.calculate_button = tk.Button(master, text="Calculate", command=self.calculate_price, bg="green", fg="white")
+        self.calculate_button.grid(row=4, column=0, columnspan=2, pady=10)
+
+        # Create clear button
+        self.clear_button = tk.Button(master, text="Clear", command=self.clear_fields, bg="red", fg="white")
+        self.clear_button.grid(row=5, column=0, columnspan=2, pady=10)
+
+        # Create save button
+        self.save_button = tk.Button(master, text="Save", command=self.save_data, bg="blue", fg="white")
+        self.save_button.grid(row=6, column=0, columnspan=2, pady=10)
+
+        # Create price label
+        self.price_label = tk.Label(master, text="", bg="lightblue", fg="black")
+        self.price_label.grid(row=7, column=0, columnspan=2, pady=10)
+
+    def calculate_price(self):
+        try:
+            # Get parcel dimensions and weight from entry fields
+            length = float(self.length_entry.get())
+            width = float(self.width_entry.get())
+            height = float(self.height_entry.get())
+            weight = float(self.weight_entry.get())
+
+            # Calculate parcel price using imported function
+            price = parcel_calculator.calculate_price(length, width, height, weight)
+            volume = length * width * height
+
+            # Update price label with calculated price
+            self.price_label.config(text="The price of your parcel is: $" + str(price))
+
+            # Save calculated values
+            self.length = length
+            self.width = width
+            self.height = height
+            self.volume = volume
+            self.price = price
+        except ValueError:
+            # Show error message if input is invalid
+            messagebox.showerror("Input Error", "Please enter valid numbers for all fields.")
+
+    def clear_fields(self):
+        # Clear all input fields and the price label
+        self.length_entry.delete(0, tk.END)
+        self.width_entry.delete(0, tk.END)
+        self.height_entry.delete(0, tk.END)
+        self.weight_entry.delete(0, tk.END)
+        self.price_label.config(text="")
+
+    def save_data(self):
+        try:
+            # Generate unique item_id
+            item_id = str(uuid.uuid4())[:10]
+
+            # Insert data into the database
+            conn = mysql.connector.connect(**self.config)
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO parcels (item_id, item_height, item_width, item_length, item_volume, item_price)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (item_id, str(self.height), str(self.width), str(self.length), str(self.volume), str(self.price)))
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            # Show success message
+            messagebox.showinfo("Success", "Parcel data has been saved successfully.")
+        except mysql.connector.Error as err:
+            # Show error message if saving fails
+            messagebox.showerror("Database Error", str(err))
+
+# Create the main window
+root = tk.Tk()
+parcel_calculator_gui = ParcelCalculatorGUI(root)
+root.mainloop()
+
