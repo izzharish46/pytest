@@ -1,0 +1,49 @@
+
+
+# main.py
+
+from parcel_calculator import calculate_price
+from save_parcel_info import save_parcel_info
+
+# Get user input for parcel dimensions and weight
+length = float(input("Enter parcel length in centimeters: "))
+width = float(input("Enter parcel width in centimeters: "))
+height = float(input("Enter parcel height in centimeters: "))
+weight = float(input("Enter parcel weight in kilograms: "))
+
+# Calculate parcel price using imported function
+price = calculate_price(length, width, height, weight)
+
+# Save parcel information to a text file
+save_parcel_info(length, width, height, weight)
+
+# Print parcel price to user
+print("The price of your parcel is: $", price)
+
+
+
+
+# parcel_calculator.py
+
+def calculate_price(length, width, height, weight):
+    # Simple formula for price calculation
+    volume = length * width * height
+    price = (volume * 0.0005) + (weight * 2)
+    return round(price, 2)
+
+
+
+
+
+# save_parcel_info.py
+
+def save_parcel_info(length, width, height, weight):
+    with open('parcel_info.txt', 'w') as file:
+        file.write(f"Length: {length} cm\n")
+        file.write(f"Width: {width} cm\n")
+        file.write(f"Height: {height} cm\n")
+        file.write(f"Weight: {weight} kg\n")
+
+
+
+
